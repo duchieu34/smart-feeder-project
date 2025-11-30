@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  fullname       String
+  email          String   @unique
+  passwordHash   String
+  isActive       Boolean  @default(false)
+  activationToken String?
+  token          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  devices  Device[]
+}
+
+model Device {
+  id          Int       @id @default(autoincrement())
+  name        String
+  deviceId    String     @unique  // mã thiết bị thực tế: ESP32-xxxx
+  userId      Int
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id])
+  schedules       FeedingSchedule[]
+  feedingLogs     FeedingLog[]
+  foodLevelLogs   FoodLevelLog[]
+}
+
+model FeedingSchedule {
+  id          Int       @id @default(autoincrement())
+  deviceId    Int
+  timeCron    String    // biểu thức cron: "0 8 * * *"
+  amount      Int       // lượng thức ăn (gram)
+  enabled     Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  device      Device    @relation(fields: [deviceId], references: [id])
+}
+
+model FeedingLog {
+  id          Int       @id @default(autoincrement())
+  deviceId    Int
+  amount      Int       // số gram đã cho ăn
+  type        String    // "manual" | "scheduled" | "remote"
+  createdAt   DateTime  @default(now())
+
+  device      Device    @relation(fields: [deviceId], references: [id])
+}
+
+model FoodLevelLog {
+  id          Int       @id @default(autoincrement())
+  deviceId    Int
+  level       Int       // phần trăm hoặc gram còn lại
+  createdAt   DateTime  @default(now())
+
+  device      Device    @relation(fields: [deviceId], references: [id])
+}
+
+model MQTTMessageLog {
+  id        Int      @id @default(autoincrement())
+  topic     String
+  payload   String
+  direction String   // "received" | "sent"
+  createdAt DateTime @default(now())
+}
