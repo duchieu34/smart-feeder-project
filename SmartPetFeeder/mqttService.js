@@ -89,6 +89,8 @@ export const setSocketIo = (instance) => {
     io = instance;
 };
 
+
+// Bắt đầu job
 export const startCronJob = (schedule) => {
     try {
         const { id, deviceId, timeCron, amount } = schedule;
@@ -98,7 +100,6 @@ export const startCronJob = (schedule) => {
             return;
         }
 
-        // clear job cũ nếu tồn tại
         if (cronJobs[id]) {
             cronJobs[id].stop();
             delete cronJobs[id];

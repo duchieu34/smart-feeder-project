@@ -4,15 +4,15 @@ import { createSchedule, getSchedules, updateSchedule, deleteSchedule, toggleSch
 
 const router = Router();
 
-router.post("/devices/:deviceId/schedules", authMiddleware, createSchedule);
+router.post("/devices/:deviceId", authMiddleware, createSchedule);
 
-router.get("/devices/:deviceId/schedules", authMiddleware, getSchedules);
+router.get("/devices/:deviceId", authMiddleware, getSchedules);
 
-router.put("/schedules/:scheduleId", authMiddleware, updateSchedule);
+router.put("/:scheduleId", authMiddleware, updateSchedule);
 
-router.delete("/schedules/:scheduleId", authMiddleware, deleteSchedule);
+router.delete("/:scheduleId", authMiddleware, deleteSchedule);
 
-router.patch("/schedules/:scheduleId/toggle", authMiddleware, toggleSchedule);
+router.patch("/:scheduleId/toggle", authMiddleware, toggleSchedule);
 
 
 export default router;
