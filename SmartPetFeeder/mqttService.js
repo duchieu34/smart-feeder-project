@@ -1,5 +1,6 @@
 import mqtt from "mqtt";
 import { PrismaClient } from "@prisma/client";
+import cron from "node-cron";
 
 const prisma = new PrismaClient();
 
@@ -13,15 +14,22 @@ const TOPIC_FEED_NOW = "petfeeder/feed_now";
 
 const client = mqtt.connect(MQTT_URL);
 
+const cronJobs = {};
+
+/* MQTT CONNECTION */
+
 client.on("connect", () => {
-    console.log("[MQTT] Connected to broker: ", MQTT_URL);
+    console.log("[MQTT] Connected:", MQTT_URL);
+
     client.subscribe([TOPIC_STATUS, TOPIC_FOOD_LEVEL], (e) => {
-        if (e) console.error("[MQTT] Subscibe error: ", e);
-        else console.log("[MQTT] Subscribed to to")
+        if (e) console.error("[MQTT] Subscribe error:", e);
+        else console.log("[MQTT] Subscribed to topics");
     });
 
-    loadSchedules();
+    loadSchedules(); // load cron job khi server start
 });
+
+/* MQTT MESSAGE LISTENER  */
 
 client.on("message", async (topic, message) => {
     const msg = message.toString();
@@ -33,10 +41,13 @@ client.on("message", async (topic, message) => {
             const device = await prisma.device.findUnique({
                 where: { deviceId: payload.deviceId }
             });
-            if (device) {
-                if (io) io.emit("device_status", { deviceId: payload.deviceId, status: payload.status });
-            }
 
+            if (device && io) {
+                io.emit("device_status", {
+                    deviceId: payload.deviceId,
+                    status: payload.status
+                });
+            }
         }
 
         if (topic === TOPIC_FOOD_LEVEL) {
@@ -44,83 +55,102 @@ client.on("message", async (topic, message) => {
             const device = await prisma.device.findUnique({
                 where: { deviceId: payload.deviceId }
             });
+
             if (device) {
-                const log = await prisma.foodLevelLog.create({
+                await prisma.foodLevelLog.create({
                     data: { deviceId: device.id, level: payload.level }
                 });
-                if (io) io.emit("food_level", { deviceId: payload.deviceId, level: payload.level });
+
+                if (io) {
+                    io.emit("food_level", {
+                        deviceId: payload.deviceId,
+                        level: payload.level
+                    });
+                }
             }
         }
     } catch (e) {
-        console.error("[MQTT] Error processing message: ", e)
+        console.error("[MQTT] Error processing message:", e);
     }
 });
 
-export const feedNow = (deviceId) => {
-    const payload = JSON.stringify({ deviceId });
+/* MQTT COMMAND */
+
+export const feedNow = (deviceId, amount = null) => {
+    const payload = JSON.stringify({ deviceId, amount });
+
     client.publish(TOPIC_FEED_NOW, payload, (e) => {
-        if (e) console.error("[MQTT] Error sending feed command: ", e);
-        else console.log(`[MQTT] Sent feed command to ${deviceId}`);
+        if (e) console.error("[MQTT] Send feed error:", e);
+        else console.log(`[MQTT] Sent feed-now to device ${deviceId}`);
     });
 };
 
-export const setSocketIo = (socketIoInstance) => {
-    io = socketIoInstance;
+export const setSocketIo = (instance) => {
+    io = instance;
 };
 
-const cronJobs = {};
-
-const startCronJobs = (schedule) => {
+export const startCronJob = (schedule) => {
     try {
         const { id, deviceId, timeCron, amount } = schedule;
+
         if (!cron.validate(timeCron)) {
             console.error("[CRON] Invalid expression:", timeCron);
             return;
         }
 
-        console.log(`[CRON] Starting job #${id} → ${timeCrom}`);
+        // clear job cũ nếu tồn tại
+        if (cronJobs[id]) {
+            cronJobs[id].stop();
+            delete cronJobs[id];
+        }
 
-        cronJobs[id] = cron.schedule(timeCron, () => {
-            console.log(`[CRON] Executing feeding job #${id} (device ${deviceId})`);
+        console.log(`[CRON] Starting job #${id} → ${timeCron}`);
+
+        cronJobs[id] = cron.schedule(timeCron, async () => {
+            console.log(`[CRON] Executing job #${id} for device ${deviceId}`);
+
+            const device = await prisma.device.findUnique({ where: { id: deviceId } });
+            if (!device) return console.error(`[CRON] Device ${deviceId} not found`);
 
             const payload = JSON.stringify({
-                deviceId,
+                deviceId: device.deviceId,
                 amount,
                 command: "FEED"
             });
 
             client.publish(TOPIC_FEED_NOW, payload);
+
+            await prisma.feedingLog.create({
+                data: {
+                    deviceId,
+                    amount,
+                    type: "scheduled"
+                }
+            });
         });
+
     } catch (e) {
-        console.error("[CRON] Internal bug");
+        console.error("[CRON] Fatal error:", e);
     }
 };
 
-const loadSchedules = async () => {
-    const schedules = await prisma.feedingSchedule.findMany();
+// Load tất cả lịch khi server khởi động
+export const loadSchedules = async () => {
+    const schedules = await prisma.feedingSchedule.findMany({
+        where: { enabled: true }
+    });
 
-    console.log(`[CRON] Loading ${schedules.length} feeding schedules`);
+    console.log(`[CRON] Loading ${schedules.length} schedules`);
 
-    schedules.forEach(startCronJobs);
+    schedules.forEach(startCronJob);
 };
 
-// export const registerSchedule = async (schedule) => {
-//     try{
-//         const {deviceId, timeCron, amount} = schedule;
+// Stop + xóa job
+export const stopCronJob = async (scheduleId) => {
+    if (cronJobs[scheduleId]) {
+        cronJobs[scheduleId].stop();
+        delete cronJobs[scheduleId];
 
-//         const existedSchedule = await prisma.feedingSchedule.findUnique({
-//             where: {deviceId, timeCron}
-//         });
-
-//         if(existedSchedule) {
-//             console.error("[SCHEDULE] Existed schedule", existedSchedule);
-//             return;
-//         }
-
-//         const newSchedule = await prisma.feedingSchedule.create({
-//             data: {deviceId, timeCron, amount}
-//         });
-
-
-//     }
-// }
+        console.log(`[CRON] Stopped job #${scheduleId}`);
+    }
+};
