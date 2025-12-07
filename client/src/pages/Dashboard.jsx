@@ -1,76 +1,79 @@
-import { useEffect, useState } from 'react';
-import api from '../services/api';
-import { io } from 'socket.io-client';
-import { useNavigate } from 'react-router-dom';
-
-const socket = io('http://localhost:3050'); 
+import { useState } from 'react';
+import './Dashboard.css';
 
 function Dashboard() {
-    const [devices, setDevices] = useState([]);
-    const [foodLevels, setFoodLevels] = useState({}); 
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) navigate('/login');
-
-        fetchDevices();
-
-        socket.on('food_level', (data) => {
-            console.log('Realtime Update:', data);
-            setFoodLevels(prev => ({
-                ...prev,
-                [data.deviceId]: data.level
-            }));
-        });
-
-        return () => {
-            socket.off('food_level');
-        };
-    }, []);
-
-    const fetchDevices = async () => {
-        try {
-            const res = await api.get('/devices');
-            setDevices(res.data);
-        } catch (err) {
-            console.error("Lỗi tải thiết bị:", err);
-        }
+    // 1 MÁY DUY NHẤT (mock)
+    const device = {
+        name: 'Máy cho ăn phòng khách',
+        deviceId: 'FEEDER_01',
+        foodLevel: 65
     };
 
-    const handleFeedNow = async (deviceId) => {
-        try {
-            await api.post(`/devices/feed-now/${deviceId}`);
-            alert('Đã gửi lệnh cho ăn!');
-        } catch (err) {
-            alert('Lỗi gửi lệnh: ' + err.message);
-        }
-    };
+    const [feedAmount, setFeedAmount] = useState(1);
+    const [scheduleTime, setScheduleTime] = useState('');
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>Quản lý Máy Cho Ăn 🐾</h1>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                {devices.map(device => (
-                    <div key={device.id} style={{ border: '1px solid #ccc', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-                        <h3>{device.name}</h3>
-                        <p style={{ color: '#666' }}>ID: {device.deviceId}</p>
-                        
-                        <div style={{ margin: '15px 0', padding: '10px', background: '#e9ecef', borderRadius: '5px' }}>
-                            <strong>Mức thức ăn: </strong>
-                            <span style={{ color: foodLevels[device.deviceId] < 20 ? 'red' : 'green', fontWeight: 'bold' }}>
-                                {foodLevels[device.deviceId] !== undefined ? `${foodLevels[device.deviceId]}%` : 'Đang chờ dữ liệu...'}
-                            </span>
-                        </div>
+        <div className="dashboard">
+            <h1 className="title">🐾 Smart Pet Feeder</h1>
 
-                        <button 
-                            onClick={() => handleFeedNow(device.deviceId)}
-                            style={{ width: '100%', padding: '10px', background: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-                        >
-                            🍖 Cho ăn ngay
-                        </button>
+            <div className="device-card single">
+                <h2>{device.name}</h2>
+                <p className="device-id">ID: {device.deviceId}</p>
+
+                {/* Food level */}
+                <div className="food-section">
+                    <label>Mức thức ăn</label>
+                    <div className="progress">
+                        <div
+                            className={`progress-bar ${
+                                device.foodLevel < 20 ? 'low' : ''
+                            }`}
+                            style={{ width: `${device.foodLevel}%` }}
+                        />
                     </div>
-                ))}
+                    <strong>{device.foodLevel}%</strong>
+                </div>
+
+                {/* Feed amount */}
+                <div className="control">
+                    <label>Lượng thức ăn</label>
+                    <select
+                        value={feedAmount}
+                        onChange={(e) => setFeedAmount(e.target.value)}
+                    >
+                        <option value={1}>1 phần</option>
+                        <option value={2}>2 phần</option>
+                        <option value={3}>3 phần</option>
+                    </select>
+                </div>
+
+                {/* Schedule */}
+                <div className="control">
+                    <label>Hẹn giờ cho ăn</label>
+                    <input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                    />
+                </div>
+
+                <button
+                    className="btn feed"
+                    onClick={() =>
+                        alert(`🍖 Cho ăn ngay\nLượng: ${feedAmount} phần`)
+                    }
+                >
+                    🍖 Cho ăn ngay
+                </button>
+
+                <button
+                    className="btn schedule"
+                    onClick={() =>
+                        alert(`⏰ Hẹn giờ: ${scheduleTime || 'chưa chọn'}`)
+                    }
+                >
+                    ⏰ Hẹn giờ cho ăn
+                </button>
             </div>
         </div>
     );
