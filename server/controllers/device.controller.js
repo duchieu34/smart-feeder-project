@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { feedNow } from "../mqttService";
-
+import { feedNow } from "../mqttService.js";
 
 const prisma = new PrismaClient();
 
