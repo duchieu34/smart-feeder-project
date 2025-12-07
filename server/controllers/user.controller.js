@@ -34,7 +34,7 @@ export const signUp = async (req, res) => {
             }
         });
 
-        const activationLink = `${process.env.FRONTEND_URL}/activate/${activationToken}`;
+        const activationLink = `${process.env.FRONTEND_BASE_URL}/activate/${activationToken}`;
 
         await sendMail(
             email,

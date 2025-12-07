@@ -7,6 +7,7 @@ import "dotenv/config";
 import deviceRoutes from "./routes/device.routes.js";
 import scheduleRoutes from "./routes/schedule.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import { authMiddleware } from "./middlewares/auth.js";
 
 import { setSocketIo } from "./mqttService.js";
 
@@ -21,9 +22,10 @@ app.use(
 
 app.use(express.json());
 
-app.use("/api/devices", deviceRoutes);
+app.use("/api/devices", authMiddleware, deviceRoutes);
 app.use("/api/schedules", scheduleRoutes);
-app.use("/api/users", userRoutes);
+app.use("/api/auth", userRoutes);
+
 
 // HTTP + WebSocket server
 const server = http.createServer(app);
