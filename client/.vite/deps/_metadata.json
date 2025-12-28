@@ -1,0 +1,49 @@
+{
+  "hash": "7bc13efb",
+  "configHash": "8454c354",
+  "lockfileHash": "9c58a6a2",
+  "browserHash": "ed531eea",
+  "optimized": {
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "000ec96f",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "1fe19535",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "16303b72",
+      "needsInterop": false
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "42dea23c",
+      "needsInterop": false
+    },
+    "socket.io-client": {
+      "src": "../../node_modules/socket.io-client/build/esm/index.js",
+      "file": "socket__io-client.js",
+      "fileHash": "05b75ab9",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-3HME3SJ2": {
+      "file": "chunk-3HME3SJ2.js"
+    },
+    "chunk-GH6UE3LJ": {
+      "file": "chunk-GH6UE3LJ.js"
+    },
+    "chunk-G3PMV62Z": {
+      "file": "chunk-G3PMV62Z.js"
+    }
+  }
+}

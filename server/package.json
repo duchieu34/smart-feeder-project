@@ -1,0 +1,27 @@
+{
+  "name": "smartpetfeeder",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@prisma/client": "^6.18.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mqtt": "^5.14.1",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.11",
+    "prisma": "^6.18.0",
+    "socket.io": "^4.8.1",
+    "venv": "^1.0.1"
+  },
+  "type": "module"
+}
