@@ -25,7 +25,7 @@ app.use(express.json());
 app.use("/api/devices", authMiddleware, deviceRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/auth", userRoutes);
-
+app.use("/api/users", userRoutes);
 
 // HTTP + WebSocket server
 const server = http.createServer(app);
