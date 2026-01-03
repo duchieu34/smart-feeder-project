@@ -12,7 +12,6 @@ function Login() {
         e.preventDefault();
         setIsLoading(true);
         try {
-            // Gọi API thật từ Backend
             const res = await api.post('/users/login', { email, password });
             
             // Lưu token thật

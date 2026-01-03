@@ -57,17 +57,22 @@ client.on("message", async (topic, message) => {
             });
 
             if (device) {
-                await prisma.foodLevelLog.create({
-                    data: { deviceId: device.id, level: payload.level }
-                });
-
-                if (io) {
-                    io.emit("food_level", {
-                        deviceId: payload.deviceId,
-                        level: payload.level
-                    });
+            await prisma.foodLevelLog.create({
+                data: { 
+                    deviceId: device.id, 
+                    level: payload.level,
+                    weight: payload.weight 
                 }
-            }
+            });
+
+            if (io) {
+                io.emit("food_level", {
+                    deviceId: payload.deviceId,
+                    level: payload.level,
+                    weight: payload.weight 
+            });
+        }
+    }
         }
     } catch (e) {
         console.error("[MQTT] Error processing message:", e);

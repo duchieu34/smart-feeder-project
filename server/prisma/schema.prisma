@@ -26,6 +26,7 @@ model User {
   devices  Device[]
 }
 
+
 model Device {
   id          Int       @id @default(autoincrement())
   name        String
@@ -67,9 +68,9 @@ model FeedingLog {
 model FoodLevelLog {
   id          Int       @id @default(autoincrement())
   deviceId    Int
-  level       Int       // phần trăm hoặc gram còn lại
+  level       Int       // Phần trăm (%)
+  weight      Int?    
   createdAt   DateTime  @default(now())
-
   device      Device    @relation(fields: [deviceId], references: [id])
 }
 

@@ -35,11 +35,19 @@ export const createDevice = async (req, res) => {
 export const feedNowController = async (req, res) => {
     try {
         const { deviceId } = req.params;
+        
+        // 1. Thêm giá trị mặc định (ví dụ 50g) nếu req.body.amount bị null/undefined
+        const { amount = 50 } = req.body; 
 
-        feedNow(deviceId);
+        // 2. Thêm 'await' nếu hàm feedNow trả về Promise (thường là có)
+        // Truyền amount vào hàm service
+        await feedNow(deviceId, amount); 
 
-        return res.json({ message: "Feeded!" });
+        // Trả về thông báo kèm số lượng để frontend biết
+        return res.json({ message: "Feed command sent!", amount });
+        
     } catch (e) {
-        return res.json(500).json({ error: e.message });
+        console.error("Feed error:", e); // Nên log lỗi ra console server để debug
+        return res.status(500).json({ error: e.message }); 
     }
 }

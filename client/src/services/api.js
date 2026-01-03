@@ -17,4 +17,20 @@ api.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
+api.getSchedules = (deviceId) => {
+    return api.get(`/schedules/devices/${deviceId}`);
+};
+
+api.createSchedule = (deviceId, data) => {
+    return api.post(`/schedules/devices/${deviceId}`, {
+        ...data,
+        deviceId: deviceId 
+    });
+};
+
+api.deleteSchedule = (scheduleId) => {
+    return api.delete(`/schedules/${scheduleId}`);
+};
+
+
 export default api;
