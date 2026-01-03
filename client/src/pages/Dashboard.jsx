@@ -3,14 +3,14 @@ import api from '../services/api';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import ScheduleManager from './ScheduleManager';
-
+import FeedingChart from './FeedingChart';
 const socket = io('http://localhost:3050'); 
 
 function Dashboard() {
     const [devices, setDevices] = useState([]);
     const [realtimeData, setRealtimeData] = useState({}); 
     const [loading, setLoading] = useState(false);
-    
+    const [loadingDevices, setLoadingDevices] = useState({});
     // Lưu mức mong muốn (Target) cho từng thiết bị
     const [targetLevels, setTargetLevels] = useState({}); 
 
@@ -31,8 +31,21 @@ function Dashboard() {
             }));
         });
 
+        socket.on('feed_callback', (data) => {
+            // Tắt loading cho thiết bị đó
+            setLoadingDevices(prev => ({ ...prev, [data.deviceId]: false }));
+
+            // Hiện thông báo kết quả
+            if (data.status === 'success') {
+                alert(`✅ THÀNH CÔNG: ${data.message}`);
+            } else {
+                alert(`❌ THẤT BẠI: ${data.message}`);
+            }
+        });
+
         return () => {
             socket.off('food_level');
+            socket.off('feed_callback');
         };
     }, []);
 
@@ -67,12 +80,20 @@ function Dashboard() {
         try {
             // Gửi target (mức mong muốn) xuống Backend
             await api.post(`/devices/feed-now/${deviceId}`, { amount: target });
-            alert(`✅ Đang làm đầy bát đến mức ${target}g...`);
+            console.log("Đã gửi lệnh, đang chờ phản hồi từ thiết bị...");
+            setTimeout(() => {
+                setLoadingDevices(prev => {
+                    if (prev[deviceId] === true) {
+                        alert(`⚠️ Hết thời gian chờ phản hồi từ ${deviceId}. Vui lòng kiểm tra lại thiết bị.`);
+                        return { ...prev, [deviceId]: false };
+                    }
+                    return prev;
+                });
+            }, 25000);
         } catch (err) {
-            alert('❌ Lỗi: ' + (err.response?.data?.error || err.message));
-        } finally {
-            setLoading(false);
-        }
+            alert('❌ Lỗi gửi lệnh: ' + (err.response?.data?.error || err.message));
+            setLoadingDevices(prev => ({ ...prev, [deviceId]: false }));
+        } 
     };
 
     return (
@@ -96,6 +117,7 @@ function Dashboard() {
                         // Kiểm tra xem bát đã đủ lượng mong muốn chưa
                         const isEnough = weight >= currentTarget;
 
+                        const isBusy = loadingDevices[device.deviceId]; // Kiểm tra xem máy này có đang bận không
                         return (
                             <div key={device.id} style={{ background: '#fff', borderRadius: '20px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
                                 
@@ -176,27 +198,28 @@ function Dashboard() {
                                     {/* Nút hành động */}
                                     <button
                                         onClick={() => handleFeedNow(device.deviceId, weight)}
-                                        disabled={loading || isEnough}
+                                        disabled={isBusy || isEnough} // Disable khi đang bận
                                         style={{
                                             width: '100%',
                                             padding: '16px',
-                                            background: isEnough 
-                                                ? '#bdc3c7' // Xám nếu đã đủ
-                                                : 'linear-gradient(135deg, #2ecc71, #27ae60)', // Xanh lá kích hoạt
+                                            // Đổi màu khi đang xử lý
+                                            background: isBusy ? '#95a5a6' : (isEnough ? '#bdc3c7' : 'linear-gradient(135deg, #2ecc71, #27ae60)'),
                                             color: '#fff', 
                                             border: 'none', borderRadius: '12px',
                                             fontSize: '1.1rem', fontWeight: 700,
-                                            cursor: (loading || isEnough) ? 'not-allowed' : 'pointer',
-                                            boxShadow: isEnough ? 'none' : '0 5px 15px rgba(46, 204, 113, 0.4)',
-                                            transition: 'transform 0.1s'
-                                        }}
-                                    >
-                                        {loading ? '⏳ Đang xử lý...' : (
-                                            isEnough ? `✅ Bát đã đủ (> ${currentTarget}g)` : ` Làm đầy đến ${currentTarget}g`
+                                            cursor: (isBusy || isEnough) ? 'not-allowed' : 'pointer',
+                                            // Thêm hiệu ứng loading
+                                            opacity: isBusy ? 0.8 : 1
+                                        }}>
+                                        {isBusy ? '⏳ Đang cho ăn... (Vui lòng đợi)' : (
+                                            isEnough ? `✅ Bát đã đủ (> ${currentTarget}g)` : `🚀 Làm đầy đến ${currentTarget}g`
                                         )}
                                     </button>
                                 </div>
-
+                                <div style={{ marginTop: '30px' }}>
+                                    <FeedingChart deviceId={device.deviceId} />
+                                </div>
+                                
                                 <div style={{ marginTop: '20px' }}>
                                     <ScheduleManager deviceId={device.deviceId} />
                                 </div>

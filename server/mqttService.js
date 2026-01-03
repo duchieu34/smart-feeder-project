@@ -11,6 +11,7 @@ const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const TOPIC_STATUS = "petfeeder/status";
 const TOPIC_FOOD_LEVEL = "petfeeder/food_level";
 const TOPIC_FEED_NOW = "petfeeder/feed_now";
+const TOPIC_FEED_RESULT = "petfeeder/feed_result";
 
 const client = mqtt.connect(MQTT_URL);
 
@@ -21,7 +22,7 @@ const cronJobs = {};
 client.on("connect", () => {
     console.log("[MQTT] Connected:", MQTT_URL);
 
-    client.subscribe([TOPIC_STATUS, TOPIC_FOOD_LEVEL], (e) => {
+    client.subscribe([TOPIC_STATUS, TOPIC_FOOD_LEVEL, TOPIC_FEED_NOW, TOPIC_FEED_RESULT], (e) => {
         if (e) console.error("[MQTT] Subscribe error:", e);
         else console.log("[MQTT] Subscribed to topics");
     });
@@ -70,10 +71,30 @@ client.on("message", async (topic, message) => {
                     deviceId: payload.deviceId,
                     level: payload.level,
                     weight: payload.weight 
-            });
+                 });
+                }
+            }
+        }
+
+        if (topic === TOPIC_FEED_RESULT) {
+        try {
+            const payload = JSON.parse(msg);
+            console.log(`[MQTT] Feed Result for ${payload.deviceId}: ${payload.status}`);
+
+            // Gửi qua Socket cho Frontend
+            if (io) {
+                io.emit("feed_callback", {
+                    deviceId: payload.deviceId,
+                    status: payload.status, // "success" hoặc "error"
+                    message: payload.message
+                });
+            }
+        } catch (e) {
+            console.error("Error parsing feed result:", e);
         }
     }
-        }
+
+
     } catch (e) {
         console.error("[MQTT] Error processing message:", e);
     }
