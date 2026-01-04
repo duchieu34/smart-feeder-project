@@ -6,14 +6,21 @@ const prisma = new PrismaClient();
 
 let io;
 
-const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
+const mqttOptions = {
+    host: process.env.MQTT_HOST,
+    port: process.env.MQTT_PORT || 8883,
+    protocol: 'mqtts', // Bắt buộc dùng mqtts cho SSL
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    rejectUnauthorized: true, // Kiểm tra chứng chỉ CA (Bảo mật cao)
+};
 
 const TOPIC_STATUS = "petfeeder/status";
 const TOPIC_FOOD_LEVEL = "petfeeder/food_level";
 const TOPIC_FEED_NOW = "petfeeder/feed_now";
 const TOPIC_FEED_RESULT = "petfeeder/feed_result";
 
-const client = mqtt.connect(MQTT_URL);
+const client = mqtt.connect(mqttOptions);
 
 const cronJobs = {};
 

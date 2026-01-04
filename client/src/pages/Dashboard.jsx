@@ -9,7 +9,6 @@ const socket = io('http://localhost:3050');
 function Dashboard() {
     const [devices, setDevices] = useState([]);
     const [realtimeData, setRealtimeData] = useState({}); 
-    const [loading, setLoading] = useState(false);
     const [loadingDevices, setLoadingDevices] = useState({});
     // Lưu mức mong muốn (Target) cho từng thiết bị
     const [targetLevels, setTargetLevels] = useState({}); 
@@ -76,7 +75,7 @@ function Dashboard() {
             return;
         }
 
-        setLoading(true);
+        setLoadingDevices(prev => ({ ...prev, [deviceId]: true }));
         try {
             // Gửi target (mức mong muốn) xuống Backend
             await api.post(`/devices/feed-now/${deviceId}`, { amount: target });
@@ -198,19 +197,19 @@ function Dashboard() {
                                     {/* Nút hành động */}
                                     <button
                                         onClick={() => handleFeedNow(device.deviceId, weight)}
-                                        disabled={isBusy || isEnough} // Disable khi đang bận
+                                        disabled={isBusy || isEnough} // Khóa nút khi đang bận
                                         style={{
                                             width: '100%',
                                             padding: '16px',
-                                            // Đổi màu khi đang xử lý
+                                            // Đổi màu xám khi đang bận
                                             background: isBusy ? '#95a5a6' : (isEnough ? '#bdc3c7' : 'linear-gradient(135deg, #2ecc71, #27ae60)'),
                                             color: '#fff', 
                                             border: 'none', borderRadius: '12px',
                                             fontSize: '1.1rem', fontWeight: 700,
                                             cursor: (isBusy || isEnough) ? 'not-allowed' : 'pointer',
-                                            // Thêm hiệu ứng loading
                                             opacity: isBusy ? 0.8 : 1
-                                        }}>
+                                        }}
+                                    >
                                         {isBusy ? '⏳ Đang cho ăn... (Vui lòng đợi)' : (
                                             isEnough ? `✅ Bát đã đủ (> ${currentTarget}g)` : `🚀 Làm đầy đến ${currentTarget}g`
                                         )}

@@ -23,7 +23,7 @@ app.use(
 app.use(express.json());
 
 app.use("/api/devices", authMiddleware, deviceRoutes);
-app.use("/api/schedules", scheduleRoutes);
+app.use("/api/schedules", authMiddleware,scheduleRoutes);
 app.use("/api/auth", userRoutes);
 app.use("/api/users", userRoutes);
 
