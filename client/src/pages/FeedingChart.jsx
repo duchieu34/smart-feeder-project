@@ -21,7 +21,7 @@ ChartJS.register(
   Legend
 );
 
-const FeedingChart = ({ deviceId }) => {
+const FeedingChart = ({ deviceId, refreshTrigger }) => {
     const [chartData, setChartData] = useState({
         labels: [],
         datasets: []
@@ -54,7 +54,7 @@ const FeedingChart = ({ deviceId }) => {
         if (deviceId) {
             fetchStats();
         }
-    }, [deviceId]);
+    }, [deviceId, refreshTrigger]);
 
     const options = {
         responsive: true,

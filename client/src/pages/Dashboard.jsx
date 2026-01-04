@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,8 @@ function Dashboard() {
     const [loadingDevices, setLoadingDevices] = useState({});
     // Lưu mức mong muốn (Target) cho từng thiết bị
     const [targetLevels, setTargetLevels] = useState({}); 
-
+    const [refreshStats, setRefreshStats] = useState(0);
+    const startTimeRef = useRef(0);
     const navigate = useNavigate();
     const BOWL_CAPACITY = 300; // Dung tích tối đa của bát
     const PRESETS = [50, 100, 150, 200]; // Các mức chọn nhanh
@@ -34,9 +35,12 @@ function Dashboard() {
             // Tắt loading cho thiết bị đó
             setLoadingDevices(prev => ({ ...prev, [data.deviceId]: false }));
 
+            const clientDuration = Date.now() - startTimeRef.current;
+            console.log(`✅ [CLIENT REPORT] Tổng thời gian chờ: ${clientDuration}ms`);
             // Hiện thông báo kết quả
             if (data.status === 'success') {
                 alert(`✅ THÀNH CÔNG: ${data.message}`);
+                setRefreshStats(prev => prev + 1);
             } else {
                 alert(`❌ THẤT BẠI: ${data.message}`);
             }
@@ -76,6 +80,9 @@ function Dashboard() {
         }
 
         setLoadingDevices(prev => ({ ...prev, [deviceId]: true }));
+
+        startTimeRef.current = Date.now();
+        console.log("🖱️ [CLIENT] Người dùng đã bấm nút...");
         try {
             // Gửi target (mức mong muốn) xuống Backend
             await api.post(`/devices/feed-now/${deviceId}`, { amount: target });
@@ -216,7 +223,9 @@ function Dashboard() {
                                     </button>
                                 </div>
                                 <div style={{ marginTop: '30px' }}>
-                                    <FeedingChart deviceId={device.deviceId} />
+                                    <FeedingChart deviceId={device.deviceId} 
+                                    refreshTrigger={refreshStats}
+                                    />
                                 </div>
                                 
                                 <div style={{ marginTop: '20px' }}>

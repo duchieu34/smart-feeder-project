@@ -4,15 +4,18 @@ import cron from "node-cron";
 
 const prisma = new PrismaClient();
 
+const performanceMap = new Map();
+
 let io;
 
+
 const mqttOptions = {
-    host: process.env.MQTT_HOST,
-    port: process.env.MQTT_PORT || 8883,
-    protocol: 'mqtts', // Bắt buộc dùng mqtts cho SSL
-    username: process.env.MQTT_USERNAME,
-    password: process.env.MQTT_PASSWORD,
-    rejectUnauthorized: true, // Kiểm tra chứng chỉ CA (Bảo mật cao)
+    host: 'eb5ad38efbdf4cb9bdefe0cf63885d45.s1.eu.hivemq.cloud', 
+    port: 8883,
+    protocol: 'mqtts', 
+    username: 'duc_hieu', 
+    password: 'Duchieu@2004',
+    rejectUnauthorized: true, 
 };
 
 const TOPIC_STATUS = "petfeeder/status";
@@ -20,6 +23,7 @@ const TOPIC_FOOD_LEVEL = "petfeeder/food_level";
 const TOPIC_FEED_NOW = "petfeeder/feed_now";
 const TOPIC_FEED_RESULT = "petfeeder/feed_result";
 
+console.log("[MQTT] Connecting to HiveMQ Cloud...");
 const client = mqtt.connect(mqttOptions);
 
 const cronJobs = {};
@@ -27,7 +31,6 @@ const cronJobs = {};
 /* MQTT CONNECTION */
 
 client.on("connect", () => {
-    console.log("[MQTT] Connected:", MQTT_URL);
 
     client.subscribe([TOPIC_STATUS, TOPIC_FOOD_LEVEL, TOPIC_FEED_NOW, TOPIC_FEED_RESULT], (e) => {
         if (e) console.error("[MQTT] Subscribe error:", e);
@@ -46,6 +49,14 @@ client.on("message", async (topic, message) => {
     try {
         if (topic === TOPIC_STATUS) {
             const payload = JSON.parse(msg);
+
+            const sendTime = performanceMap.get(payload.deviceId);
+            if (sendTime) {
+                const duration = Date.now() - sendTime;
+                console.log(`⚡ [PERFORMANCE] Device ${payload.deviceId} hoàn thành sau: ${duration}ms`);
+                performanceMap.delete(payload.deviceId); // Xóa sau khi xong
+            }
+
             const device = await prisma.device.findUnique({
                 where: { deviceId: payload.deviceId }
             });
@@ -88,6 +99,14 @@ client.on("message", async (topic, message) => {
             const payload = JSON.parse(msg);
             console.log(`[MQTT] Feed Result for ${payload.deviceId}: ${payload.status}`);
 
+            const startTime = performanceMap.get(payload.deviceId);
+            if (startTime) {
+                const serverDuration = Date.now() - startTime;
+                console.log(`⏱️ [SERVER REPORT] Device ${payload.deviceId} xử lý xong trong: ${serverDuration}ms`);
+
+                // Xóa map để giải phóng
+                performanceMap.delete(payload.deviceId);
+            }
             // Gửi qua Socket cho Frontend
             if (io) {
                 io.emit("feed_callback", {
@@ -111,6 +130,9 @@ client.on("message", async (topic, message) => {
 
 export const feedNow = (deviceId, amount = null) => {
     const payload = JSON.stringify({ deviceId, amount });
+
+    performanceMap.set(deviceId, Date.now());
+    console.log(`⚡ [PERFORMANCE] Bắt đầu gửi lệnh tới ${deviceId}...`);
 
     client.publish(TOPIC_FEED_NOW, payload, (e) => {
         if (e) console.error("[MQTT] Send feed error:", e);
